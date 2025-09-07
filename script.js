@@ -566,20 +566,13 @@ function getMatrixFromInput(inputId) {
     if (!input) return null;
     
     try {
-        // Простая проверка и преобразование формата матрицы
-        let cleanInput = input;
-        
-        // Преобразуем формат [[1,2],[3,4]] в [(1,2),(3,4)] для math.js
-        if (input.startsWith('[') && input.endsWith(']')) {
-            cleanInput = input.replace(/\[/g, '(').replace(/\]/g, ')');
-        }
-        
-        // Пытаемся вычислить выражение
-        const result = math.evaluate(cleanInput);
+        // math.evaluate может напрямую обрабатывать строки матриц.
+        // Предыдущая логика преобразования была некорректной и вызывала ошибки.
+        const result = math.evaluate(input);
         return result;
     } catch (error) {
         console.error('Ошибка парсинга матрицы:', error);
-        throw new Error('Неверный формат матрицы. Используйте формат: [[1,2],[3,4]]');
+        throw new Error('Неверный формат матрицы. Используйте формат: [[1,2],[3,4]] или [(1,2),(3,4)]');
     }
 }
 
