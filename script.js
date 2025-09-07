@@ -9,6 +9,8 @@ let graphOffsetY = 0;
 document.addEventListener('DOMContentLoaded', function() {
     initializeTabs();
     initializeEventListeners();
+    initializeMatrixGrids();
+    initializeUnitConverter();
     updateDisplay();
 });
 
@@ -28,6 +30,12 @@ function initializeTabs() {
             // Добавляем активный класс к выбранной вкладке
             button.classList.add('active');
             document.getElementById(tabName).classList.add('active');
+
+            // При переключении на вкладку 3D-графиков, строим график
+            if (tabName === '3d-graphs') {
+                // Небольшая задержка, чтобы убедиться, что контейнер видим
+                setTimeout(plot3dFunction, 50);
+            }
         });
     });
 }
@@ -100,7 +108,7 @@ function calculate() {
     const result = document.getElementById('result');
     const history = document.querySelector('.history');
     
-    if (!display.value.trim()) return;
+    if (!display.value.trim()) return; 
     
     try {
         // Заменяем символы для совместимости с math.js
@@ -165,7 +173,7 @@ function handleKeyboardInput(e) {
     const result = document.getElementById('result');
     
     // Игнорируем нажатия, если не находимся на вкладке калькулятора
-    if (!document.getElementById('calculator').classList.contains('active')) return;
+    if (!document.getElementById('calculator').classList.contains('active')) return; 
     
     if (e.key >= '0' && e.key <= '9') {
         appendToDisplay(e.key);
@@ -561,36 +569,85 @@ function findIntersectionPoint(func1, func2, x1, x2, yMin, yMax) {
 }
 
 // Функции для матриц
-function getMatrixFromInput(inputId) {
-    const input = document.getElementById(inputId).value.trim();
-    if (!input) return null;
-    
-    try {
-        // math.evaluate может напрямую обрабатывать строки матриц.
-        // Предыдущая логика преобразования была некорректной и вызывала ошибки.
-        const result = math.evaluate(input);
-        return result;
-    } catch (error) {
-        console.error('Ошибка парсинга матрицы:', error);
-        throw new Error('Неверный формат матрицы. Используйте формат: [[1,2],[3,4]] или [(1,2),(3,4)]');
+function initializeMatrixGrids() {
+    // Initial grid creation
+    createMatrixGrid('matrixA-grid', 2, 2, [[1, 2], [3, 4]]);
+    createMatrixGrid('matrixB-grid', 2, 1, [[5], [6]]); // Default to a vector
+
+    // Event listeners for dimension changes
+    document.getElementById('matrixARows').addEventListener('change', () => updateMatrixGrid('A'));
+    document.getElementById('matrixACols').addEventListener('change', () => updateMatrixGrid('A'));
+    document.getElementById('matrixBRows').addEventListener('change', () => updateMatrixGrid('B'));
+    document.getElementById('matrixBCols').addEventListener('change', () => updateMatrixGrid('B'));
+}
+
+function updateMatrixGrid(matrixName) {
+    const rows = document.getElementById(`matrix${matrixName}Rows`).value;
+    const cols = document.getElementById(`matrix${matrixName}Cols`).value;
+    createMatrixGrid(`matrix${matrixName}-grid`, rows, cols);
+}
+
+function createMatrixGrid(containerId, rows, cols, defaultValues = []) {
+    const container = document.getElementById(containerId);
+    container.innerHTML = '';
+    container.style.gridTemplateColumns = `repeat(${cols}, 1fr)`;
+
+    for (let i = 0; i < rows; i++) {
+        for (let j = 0; j < cols; j++) {
+            const input = document.createElement('input');
+            input.type = 'number';
+            input.value = (defaultValues[i] && defaultValues[i][j] !== undefined) ? defaultValues[i][j] : 0;
+            container.appendChild(input);
+        }
     }
+}
+
+function getMatrixFromGrid(matrixName) {
+    const rows = parseInt(document.getElementById(`matrix${matrixName}Rows`).value);
+    const cols = parseInt(document.getElementById(`matrix${matrixName}Cols`).value);
+    const grid = document.getElementById(`matrix${matrixName}-grid`);
+    const inputs = grid.getElementsByTagName('input');
+    
+    if (inputs.length !== rows * cols) {
+        throw new Error(`Матрица ${matrixName} неправильно инициализирована.`);
+    }
+
+    const matrix = [];
+    let inputIndex = 0;
+    for (let i = 0; i < rows; i++) {
+        const row = [];
+        for (let j = 0; j < cols; j++) {
+            const value = parseFloat(inputs[inputIndex].value);
+            if (isNaN(value)) {
+                throw new Error(`Неверное число в матрице ${matrixName} в строке ${i+1}, столбце ${j+1}`);
+            }
+            row.push(value);
+            inputIndex++;
+        }
+        matrix.push(row);
+    }
+    return matrix;
 }
 
 function displayMatrixResult(result, title = 'Результат:') {
     const resultDiv = document.getElementById('matrixResult');
+    let content = `<strong>${title}</strong><br>`;
+
     try {
-        if (Array.isArray(result)) {
-            if (Array.isArray(result[0])) {
-                // Матрица
-                resultDiv.innerHTML = `<strong>${title}</strong><br><pre>${math.format(result, { precision: 20 })}</pre>`;
-            } else {
-                // Вектор
-                resultDiv.innerHTML = `<strong>${title}</strong><br><pre>[${result.map(x => math.format(x, { precision: 20 })).join(', ')}]</pre>`;
-            }
+        if (result.values && result.vectors) {
+            // Eigenvalues/vectors result
+            content += 'Собственные значения (Eigenvalues):';
+            content += `<pre>${math.format(result.values, { precision: 5 })}</pre>`;
+            content += 'Собственные векторы (Eigenvectors):';
+            content += `<pre>${math.format(result.vectors, { precision: 5 })}</pre>`;
+        } else if (Array.isArray(result) || result.isMatrix) {
+            // Standard matrix or vector
+            content += `<pre>${math.format(result, { precision: 5 })}</pre>`;
         } else {
-            // Скаляр
-            resultDiv.innerHTML = `<strong>${title}</strong><br><pre>${math.format(result, { precision: 20 })}</pre>`;
+            // Scalar
+            content += `<pre>${math.format(result, { precision: 5 })}</pre>`;
         }
+        resultDiv.innerHTML = content;
     } catch (error) {
         resultDiv.innerHTML = `<strong>${title}</strong><br><pre>${result}</pre>`;
     }
@@ -598,13 +655,8 @@ function displayMatrixResult(result, title = 'Результат:') {
 
 function multiplyMatrices() {
     try {
-        const matrixA = getMatrixFromInput('matrixA');
-        const matrixB = getMatrixFromInput('matrixB');
-        
-        if (!matrixA || !matrixB) {
-            throw new Error('Введите обе матрицы');
-        }
-        
+        const matrixA = getMatrixFromGrid('A');
+        const matrixB = getMatrixFromGrid('B');
         const result = math.multiply(matrixA, matrixB);
         displayMatrixResult(result, 'A × B =');
     } catch (error) {
@@ -614,13 +666,8 @@ function multiplyMatrices() {
 
 function addMatrices() {
     try {
-        const matrixA = getMatrixFromInput('matrixA');
-        const matrixB = getMatrixFromInput('matrixB');
-        
-        if (!matrixA || !matrixB) {
-            throw new Error('Введите обе матрицы');
-        }
-        
+        const matrixA = getMatrixFromGrid('A');
+        const matrixB = getMatrixFromGrid('B');
         const result = math.add(matrixA, matrixB);
         displayMatrixResult(result, 'A + B =');
     } catch (error) {
@@ -630,13 +677,8 @@ function addMatrices() {
 
 function subtractMatrices() {
     try {
-        const matrixA = getMatrixFromInput('matrixA');
-        const matrixB = getMatrixFromInput('matrixB');
-        
-        if (!matrixA || !matrixB) {
-            throw new Error('Введите обе матрицы');
-        }
-        
+        const matrixA = getMatrixFromGrid('A');
+        const matrixB = getMatrixFromGrid('B');
         const result = math.subtract(matrixA, matrixB);
         displayMatrixResult(result, 'A - B =');
     } catch (error) {
@@ -646,12 +688,7 @@ function subtractMatrices() {
 
 function determinantA() {
     try {
-        const matrixA = getMatrixFromInput('matrixA');
-        
-        if (!matrixA) {
-            throw new Error('Введите матрицу A');
-        }
-        
+        const matrixA = getMatrixFromGrid('A');
         const result = math.det(matrixA);
         displayMatrixResult(result, 'det(A) =');
     } catch (error) {
@@ -659,29 +696,9 @@ function determinantA() {
     }
 }
 
-function determinantB() {
-    try {
-        const matrixB = getMatrixFromInput('matrixB');
-        
-        if (!matrixB) {
-            throw new Error('Введите матрицу B');
-        }
-        
-        const result = math.det(matrixB);
-        displayMatrixResult(result, 'det(B) =');
-    } catch (error) {
-        document.getElementById('matrixResult').innerHTML = `<strong>Ошибка:</strong><br>${error.message}`;
-    }
-}
-
 function inverseA() {
     try {
-        const matrixA = getMatrixFromInput('matrixA');
-        
-        if (!matrixA) {
-            throw new Error('Введите матрицу A');
-        }
-        
+        const matrixA = getMatrixFromGrid('A');
         const result = math.inv(matrixA);
         displayMatrixResult(result, 'A⁻¹ =');
     } catch (error) {
@@ -689,29 +706,9 @@ function inverseA() {
     }
 }
 
-function inverseB() {
-    try {
-        const matrixB = getMatrixFromInput('matrixB');
-        
-        if (!matrixB) {
-            throw new Error('Введите матрицу B');
-        }
-        
-        const result = math.inv(matrixB);
-        displayMatrixResult(result, 'B⁻¹ =');
-    } catch (error) {
-        document.getElementById('matrixResult').innerHTML = `<strong>Ошибка:</strong><br>${error.message}`;
-    }
-}
-
 function transposeA() {
     try {
-        const matrixA = getMatrixFromInput('matrixA');
-        
-        if (!matrixA) {
-            throw new Error('Введите матрицу A');
-        }
-        
+        const matrixA = getMatrixFromGrid('A');
         const result = math.transpose(matrixA);
         displayMatrixResult(result, 'Aᵀ =');
     } catch (error) {
@@ -719,20 +716,404 @@ function transposeA() {
     }
 }
 
-function transposeB() {
+function eigenA() {
     try {
-        const matrixB = getMatrixFromInput('matrixB');
-        
-        if (!matrixB) {
-            throw new Error('Введите матрицу B');
-        }
-        
-        const result = math.transpose(matrixB);
-        displayMatrixResult(result, 'Bᵀ =');
+        const matrixA = getMatrixFromGrid('A');
+        const result = math.eigs(matrixA);
+        displayMatrixResult(result, 'Собственные значения/векторы матрицы A');
     } catch (error) {
         document.getElementById('matrixResult').innerHTML = `<strong>Ошибка:</strong><br>${error.message}`;
     }
 }
+
+function solveLinearSystem() {
+    try {
+        const matrixA = getMatrixFromGrid('A');
+        const matrixB = getMatrixFromGrid('B');
+        
+        // Extract the first column of B as the vector b
+        const b = matrixB.map(row => row[0]);
+
+        const result = math.lusolve(matrixA, b);
+        displayMatrixResult(result, 'Решение системы Ax=b (x):');
+    } catch (error) {
+        document.getElementById('matrixResult').innerHTML = `<strong>Ошибка:</strong><br>${error.message}`;
+    }
+}
+
+// Функции для 3D графиков
+function plot3dFunction() {
+    try {
+        const funcStr = document.getElementById('function3dInput').value;
+        if (!funcStr) {
+            return; // Не строим график, если поле пустое
+        }
+
+        const xMin = parseFloat(document.getElementById('x3dMin').value);
+        const xMax = parseFloat(document.getElementById('x3dMax').value);
+        const yMin = parseFloat(document.getElementById('y3dMin').value);
+        const yMax = parseFloat(document.getElementById('y3dMax').value);
+
+        const resolution = 40; // Уменьшаем разрешение для скорости
+        const xValues = math.range(xMin, xMax, (xMax - xMin) / resolution).toArray();
+        const yValues = math.range(yMin, yMax, (yMax - yMin) / resolution).toArray();
+
+        const zValues = [];
+        const node = math.parse(funcStr);
+        const code = node.compile();
+
+        for (let i = 0; i < yValues.length; i++) {
+            const zRow = [];
+            for (let j = 0; j < xValues.length; j++) {
+                const z = code.evaluate({ x: xValues[j], y: yValues[i] });
+                zRow.push(z);
+            }
+            zValues.push(zRow);
+        }
+
+        const data = [{
+            z: zValues,
+            x: xValues,
+            y: yValues,
+            type: 'surface',
+            contours: {
+                z: {
+                  show:true,
+                  usecolormap: true,
+                  highlightcolor:"#42f462",
+                  project:{z: true}
+                }
+              }
+        }];
+
+        const layout = {
+            title: `z = ${funcStr}`,
+            autosize: true,
+            margin: { l: 40, r: 40, b: 40, t: 60 }
+        };
+
+        Plotly.newPlot('graph3dCanvas', data, layout, {responsive: true});
+
+    } catch (error) {
+        console.error('Ошибка построения 3D графика:', error);
+        alert('Не удалось построить 3D график. Проверьте правильность функции.');
+    }
+}
+
+// Функции для конвертера
+const conversionRates = {
+    length: {
+        meter: 1,
+        kilometer: 1000,
+        centimeter: 0.01,
+        millimeter: 0.001,
+        mile: 1609.34,
+        yard: 0.9144,
+        foot: 0.3048,
+        inch: 0.0254
+    },
+    mass: {
+        gram: 1,
+        kilogram: 1000,
+        milligram: 0.001,
+        pound: 453.592,
+        ounce: 28.3495
+    },
+    area: {
+        'square meter': 1,
+        'square kilometer': 1000000,
+        hectare: 10000,
+        'square mile': 2589988.11,
+        acre: 4046.86
+    }
+};
+
+const unitTranslations = {
+    length: 'Длина',
+    mass: 'Масса',
+    area: 'Площадь',
+    meter: 'Метр',
+    kilometer: 'Километр',
+    centimeter: 'Сантиметр',
+    millimeter: 'Миллиметр',
+    mile: 'Миля',
+    yard: 'Ярд',
+    foot: 'Фут',
+    inch: 'Дюйм',
+    gram: 'Грамм',
+    kilogram: 'Килограмм',
+    milligram: 'Миллиграмм',
+    pound: 'Фунт',
+    ounce: 'Унция',
+    'square meter': 'Кв. метр',
+    'square kilometer': 'Кв. километр',
+    hectare: 'Гектар',
+    'square mile': 'Кв. миля',
+    acre: 'Акp'
+};
+
+function initializeUnitConverter() {
+    const categorySelect = document.getElementById('unitCategory');
+    const fromUnitSelect = document.getElementById('fromUnit');
+    const toUnitSelect = document.getElementById('toUnit');
+    const fromValueInput = document.getElementById('fromValue');
+
+    // Populate category dropdown
+    for (const category in conversionRates) {
+        const option = document.createElement('option');
+        option.value = category;
+        option.textContent = unitTranslations[category] || category;
+        categorySelect.appendChild(option);
+    }
+
+    // Event listeners
+    categorySelect.addEventListener('change', updateUnitDropdowns);
+    fromUnitSelect.addEventListener('change', convertUnits);
+    toUnitSelect.addEventListener('change', convertUnits);
+    fromValueInput.addEventListener('input', convertUnits);
+
+    // Initial setup
+    updateUnitDropdowns();
+}
+
+function updateUnitDropdowns() {
+    const category = document.getElementById('unitCategory').value;
+    const fromUnitSelect = document.getElementById('fromUnit');
+    const toUnitSelect = document.getElementById('toUnit');
+    
+    fromUnitSelect.innerHTML = '';
+    toUnitSelect.innerHTML = '';
+
+    const units = conversionRates[category];
+    for (const unit in units) {
+        const option1 = document.createElement('option');
+        option1.value = unit;
+        option1.textContent = unitTranslations[unit] || unit;
+        fromUnitSelect.appendChild(option1);
+
+        const option2 = document.createElement('option');
+        option2.value = unit;
+        option2.textContent = unitTranslations[unit] || unit;
+        toUnitSelect.appendChild(option2);
+    }
+
+    // Set default different units
+    fromUnitSelect.selectedIndex = 0;
+    toUnitSelect.selectedIndex = 1;
+
+    convertUnits();
+}
+
+function convertUnits() {
+    const category = document.getElementById('unitCategory').value;
+    const fromValue = parseFloat(document.getElementById('fromValue').value);
+    const fromUnit = document.getElementById('fromUnit').value;
+    const toUnit = document.getElementById('toUnit').value;
+    const toValueDiv = document.getElementById('toValue');
+
+    if (isNaN(fromValue)) {
+        toValueDiv.textContent = '';
+        return;
+    }
+
+    const fromFactor = conversionRates[category][fromUnit];
+    const toFactor = conversionRates[category][toUnit];
+
+    const result = fromValue * fromFactor / toFactor;
+
+    toValueDiv.textContent = result.toLocaleString('fullwide', { useGrouping: false, maximumFractionDigits: 8 });
+}
+
+// Функции для теории чисел
+function calculateGcd() {
+    try {
+        const a = math.bignumber(document.getElementById('gcdLcmA').value);
+        const b = math.bignumber(document.getElementById('gcdLcmB').value);
+        const result = math.gcd(a, b);
+        document.getElementById('gcdLcmResult').innerHTML = `<pre>${result.toString()}</pre>`;
+    } catch (error) {
+        document.getElementById('gcdLcmResult').innerHTML = `<pre>Ошибка: ${error.message}</pre>`;
+    }
+}
+
+function calculateLcm() {
+    try {
+        const a = math.bignumber(document.getElementById('gcdLcmA').value);
+        const b = math.bignumber(document.getElementById('gcdLcmB').value);
+        const result = math.lcm(a, b);
+        document.getElementById('gcdLcmResult').innerHTML = `<pre>${result.toString()}</pre>`;
+    } catch (error) {
+        document.getElementById('gcdLcmResult').innerHTML = `<pre>Ошибка: ${error.message}</pre>`;
+    }
+}
+
+function calculateModulo() {
+    try {
+        const a = math.bignumber(document.getElementById('modInputA').value);
+        const b = math.bignumber(document.getElementById('modInputB').value);
+        const result = math.mod(a, b);
+        document.getElementById('modResult').innerHTML = `<pre>${result.toString()}</pre>`;
+    } catch (error) {
+        document.getElementById('modResult').innerHTML = `<pre>Ошибка: ${error.message}</pre>`;
+    }
+}
+
+function calculatePrimeFactorization() {
+    const resultDiv = document.getElementById('primeFactorResult');
+    try {
+        const n = parseInt(document.getElementById('primeFactorInput').value);
+        if (isNaN(n) || n < 2) {
+            throw new Error('Введите целое число больше 1');
+        }
+
+        const factors = primeFactorize(n);
+        const formattedResult = formatFactors(factors);
+        resultDiv.innerHTML = `<pre>${formattedResult}</pre>`;
+
+    } catch (error) {
+        resultDiv.innerHTML = `<pre>Ошибка: ${error.message}</pre>`;
+    }
+}
+
+function primeFactorize(n) {
+    const factors = {};
+    let d = 2;
+    let num = n;
+    while (d * d <= num) {
+        while (num % d === 0) {
+            factors[d] = (factors[d] || 0) + 1;
+            num /= d;
+        }
+        d++;
+    }
+    if (num > 1) {
+        factors[num] = (factors[num] || 0) + 1;
+    }
+    return factors;
+}
+
+function formatFactors(factors) {
+    return Object.entries(factors)
+        .map(([base, exp]) => exp > 1 ? `${base}<sup>${exp}</sup>` : `${base}`)
+        .join(' × ');
+}
+
+// Функции для статистики
+function getDataSet(inputId) {
+    const rawText = document.getElementById(inputId).value;
+    return rawText.split(',').map(item => parseFloat(item.trim())).filter(val => !isNaN(val));
+}
+
+function calculateMean() {
+    const data = getDataSet('dataSetInput');
+    const resultDiv = document.getElementById('descStatsResult');
+    if (data.length === 0) {
+        resultDiv.innerHTML = '<pre>Нет данных</pre>';
+        return;
+    }
+    try {
+        const result = math.mean(data);
+        resultDiv.innerHTML = `<pre>Среднее: ${math.format(result, {precision: 5})}</pre>`;
+    } catch (error) {
+        resultDiv.innerHTML = `<pre>Ошибка: ${error.message}</pre>`;
+    }
+}
+
+function calculateMedian() {
+    const data = getDataSet('dataSetInput');
+    const resultDiv = document.getElementById('descStatsResult');
+    if (data.length === 0) {
+        resultDiv.innerHTML = '<pre>Нет данных</pre>';
+        return;
+    }
+    try {
+        const result = math.median(data);
+        resultDiv.innerHTML = `<pre>Медиана: ${math.format(result, {precision: 5})}</pre>`;
+    } catch (error) {
+        resultDiv.innerHTML = `<pre>Ошибка: ${error.message}</pre>`;
+    }
+}
+
+function calculateMode() {
+    const data = getDataSet('dataSetInput');
+    const resultDiv = document.getElementById('descStatsResult');
+    if (data.length === 0) {
+        resultDiv.innerHTML = '<pre>Нет данных</pre>';
+        return;
+    }
+    try {
+        const result = math.mode(data);
+        resultDiv.innerHTML = `<pre>Мода: ${math.format(result, {precision: 5})}</pre>`;
+    } catch (error) {
+        resultDiv.innerHTML = `<pre>Ошибка: ${error.message}</pre>`;
+    }
+}
+
+function calculateStdDev() {
+    const data = getDataSet('dataSetInput');
+    const resultDiv = document.getElementById('descStatsResult');
+    if (data.length < 2) {
+        resultDiv.innerHTML = '<pre>Нужно мин. 2 значения</pre>';
+        return;
+    }
+    try {
+        const result = math.std(data);
+        resultDiv.innerHTML = `<pre>Ст. отклонение: ${math.format(result, {precision: 5})}</pre>`;
+    } catch (error) {
+        resultDiv.innerHTML = `<pre>Ошибка: ${error.message}</pre>`;
+    }
+}
+
+function calculateVariance() {
+    const data = getDataSet('dataSetInput');
+    const resultDiv = document.getElementById('descStatsResult');
+    if (data.length < 2) {
+        resultDiv.innerHTML = '<pre>Нужно мин. 2 значения</pre>';
+        return;
+    }
+    try {
+        const result = math.variance(data);
+        resultDiv.innerHTML = `<pre>Дисперсия: ${math.format(result, {precision: 5})}</pre>`;
+    } catch (error) {
+        resultDiv.innerHTML = `<pre>Ошибка: ${error.message}</pre>`;
+    }
+}
+
+function calculateLinearRegression() {
+    const xData = getDataSet('regressionX');
+    const yData = getDataSet('regressionY');
+    const resultDiv = document.getElementById('regressionResult');
+
+    if (xData.length !== yData.length || xData.length === 0) {
+        resultDiv.innerHTML = '<pre>Ошибка: Наборы данных X и Y должны иметь одинаковую ненулевую длину.</pre>';
+        return;
+    }
+
+    try {
+        const n = xData.length;
+        const sumX = math.sum(xData);
+        const sumY = math.sum(yData);
+        const sumXY = math.sum(math.dotMultiply(xData, yData));
+        const sumX2 = math.sum(math.dotMultiply(xData, xData));
+        const sumY2 = math.sum(math.dotMultiply(yData, yData));
+
+        const m = (n * sumXY - sumX * sumY) / (n * sumX2 - sumX * sumX);
+        const c = (sumY - m * sumX) / n;
+
+        const r2_num = (n * sumXY - sumX * sumY);
+        const r2_den = Math.sqrt((n * sumX2 - sumX * sumX) * (n * sumY2 - sumY * sumY));
+        const r2 = Math.pow(r2_num / r2_den, 2);
+
+        let resultText = `<b>Уравнение:</b> y = ${m.toFixed(4)}x + ${c.toFixed(4)}<br>`;
+        resultText += `<b>R-квадрат:</b> ${r2.toFixed(4)}`;
+
+        resultDiv.innerHTML = `<pre>${resultText}</pre>`;
+
+    } catch (error) {
+        resultDiv.innerHTML = `<pre>Ошибка: ${error.message}</pre>`;
+    }
+}
+
 
 // Функции для комплексных чисел
 function getComplexNumber(realId, imagId) {

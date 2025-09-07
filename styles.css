@@ -211,7 +211,8 @@ header h1 {
 }
 
 .input-group input,
-.input-group textarea {
+.input-group textarea,
+.input-group select {
     width: 100%;
     padding: 10px;
     border: 2px solid #ddd;
@@ -221,7 +222,8 @@ header h1 {
 }
 
 .input-group input:focus,
-.input-group textarea:focus {
+.input-group textarea:focus,
+.input-group select:focus {
     outline: none;
     border-color: #3498db;
 }
@@ -342,21 +344,36 @@ header h1 {
     text-align: center;
 }
 
-.matrix-group textarea {
-    width: 100%;
-    padding: 15px;
-    border: 2px solid #ddd;
-    border-radius: 8px;
-    font-family: 'Courier New', monospace;
-    font-size: 1rem;
-    resize: vertical;
-    min-height: 100px;
+.matrix-dimension-controls {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    margin-bottom: 15px;
+    justify-content: center;
 }
 
-.matrix-group textarea:focus {
-    outline: none;
-    border-color: #3498db;
-    box-shadow: 0 0 10px rgba(52, 152, 219, 0.3);
+.matrix-dimension-controls label {
+    font-weight: 600;
+}
+
+.matrix-dimension-controls input {
+    width: 60px;
+    padding: 5px;
+    text-align: center;
+}
+
+.matrix-grid {
+    display: grid;
+    gap: 5px;
+}
+
+.matrix-grid input {
+    width: 100%;
+    padding: 8px;
+    text-align: center;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    font-size: 1rem;
 }
 
 .matrix-operations {
@@ -459,6 +476,141 @@ header h1 {
     margin: 25px 0;
 }
 
+/* Конвертер */
+.converter-container {
+    max-width: 700px;
+    margin: 0 auto;
+    background: #f8f9fa;
+    padding: 30px;
+    border-radius: 15px;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+}
+
+.converter-container h3 {
+    text-align: center;
+    margin-bottom: 25px;
+    color: #2c3e50;
+    font-size: 1.8rem;
+}
+
+.converter-controls .input-group {
+    margin-bottom: 20px;
+}
+
+.conversion-ui {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 20px;
+}
+
+.conversion-group {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.conversion-group input,
+.conversion-group select {
+    font-size: 1.1rem;
+    padding: 12px;
+}
+
+.equals-sign {
+    font-size: 2.5rem;
+    font-weight: bold;
+    color: #3498db;
+}
+
+#toValue {
+    padding: 12px;
+    font-size: 1.1rem;
+    text-align: left;
+    min-height: 50.5px; /* Align with input */
+}
+
+/* Теория чисел */
+.number-theory-container {
+    max-width: 900px;
+    margin: 0 auto;
+}
+
+.number-theory-container h3 {
+    text-align: center;
+    margin-bottom: 25px;
+    color: #2c3e50;
+    font-size: 1.8rem;
+}
+
+.number-theory-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 20px;
+}
+
+.number-theory-card {
+    background: #f8f9fa;
+    padding: 25px;
+    border-radius: 15px;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
+}
+
+.number-theory-card h4 {
+    text-align: center;
+    margin-bottom: 20px;
+    color: #2c3e50;
+}
+
+.number-theory-card .input-group input {
+    margin-bottom: 10px;
+}
+
+.number-theory-card .result-display {
+    margin-top: 15px;
+    min-height: 50px;
+    font-size: 1.1rem;
+}
+
+/* Статистика */
+.statistics-container {
+    max-width: 900px;
+    margin: 0 auto;
+}
+
+.statistics-container h3 {
+    text-align: center;
+    margin-bottom: 25px;
+    color: #2c3e50;
+    font-size: 1.8rem;
+}
+
+.statistics-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+}
+
+.statistics-card {
+    background: #f8f9fa;
+    padding: 25px;
+    border-radius: 15px;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
+}
+
+.statistics-card h4 {
+    text-align: center;
+    margin-bottom: 20px;
+    color: #2c3e50;
+}
+
+.button-group-stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+    gap: 10px;
+    margin-top: 15px;
+}
+
 /* Результаты */
 .result-display {
     background: white;
@@ -480,6 +632,12 @@ header h1 {
 }
 
 /* Адаптивность */
+@media (max-width: 920px) {
+    .statistics-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
 @media (max-width: 768px) {
     .container {
         margin: 10px;
@@ -520,6 +678,10 @@ header h1 {
     .btn {
         padding: 12px;
         font-size: 1rem;
+    }
+
+    .conversion-ui {
+        flex-direction: column;
     }
 }
 

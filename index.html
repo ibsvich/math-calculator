@@ -6,6 +6,7 @@
     <title>Калькулятор</title>
     <link rel="stylesheet" href="styles.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjs/11.7.0/math.min.js"></script>
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
 </head>
 <body>
     <div class="container">
@@ -14,9 +15,13 @@
             <nav class="tabs">
                 <button class="tab-btn active" data-tab="calculator">Калькулятор</button>
                 <button class="tab-btn" data-tab="graphs">Графики</button>
+                <button class="tab-btn" data-tab="3d-graphs">3D Графики</button>
                 <button class="tab-btn" data-tab="matrices">Матрицы</button>
                 <button class="tab-btn" data-tab="complex">Комплексные числа</button>
                 <button class="tab-btn" data-tab="calculus">Исчисления</button>
+                <button class="tab-btn" data-tab="converter">Конвертер</button>
+                <button class="tab-btn" data-tab="number-theory">Теория чисел</button>
+                <button class="tab-btn" data-tab="statistics">Статистика</button>
             </nav>
         </header>
 
@@ -124,6 +129,43 @@
                 </div>
             </section>
 
+            <!-- 3D Графики -->
+            <section id="3d-graphs" class="tab-content">
+                <div class="graph-container">
+                    <div class="graph-controls">
+                        <h3>3D График функции z = f(x, y)</h3>
+                        <div class="input-group">
+                            <label for="function3dInput">Функция f(x, y) =</label>
+                            <input type="text" id="function3dInput" placeholder="например: sin(x) * cos(y)" value="sin(sqrt(x^2 + y^2))">
+                        </div>
+                        <div class="range-controls">
+                            <div class="range-group">
+                                <label>X min:</label>
+                                <input type="number" id="x3dMin" value="-10" step="1">
+                            </div>
+                            <div class="range-group">
+                                <label>X max:</label>
+                                <input type="number" id="x3dMax" value="10" step="1">
+                            </div>
+                            <div class="range-group">
+                                <label>Y min:</label>
+                                <input type="number" id="y3dMin" value="-10" step="1">
+                            </div>
+                            <div class="range-group">
+                                <label>Y max:</label>
+                                <input type="number" id="y3dMax" value="10" step="1">
+                            </div>
+                        </div>
+                        <div class="button-group">
+                            <button class="btn primary" onclick="plot3dFunction()">Построить 3D график</button>
+                        </div>
+                    </div>
+                    <div class="canvas-container">
+                        <div id="graph3dCanvas" style="width:100%;height:600px;"></div>
+                    </div>
+                </div>
+            </section>
+
             <!-- Матрицы -->
             <section id="matrices" class="tab-content">
                 <div class="matrix-container">
@@ -132,11 +174,23 @@
                         <div class="matrix-inputs">
                             <div class="matrix-group">
                                 <h4>Матрица A</h4>
-                                <textarea id="matrixA" placeholder="Введите матрицу A (например: [[1,2],[3,4]])" rows="4">[[1,2],[3,4]]</textarea>
+                                <div class="matrix-dimension-controls">
+                                    <label>Ряды:</label>
+                                    <input type="number" id="matrixARows" value="2" min="1" max="10">
+                                    <label>Колонки:</label>
+                                    <input type="number" id="matrixACols" value="2" min="1" max="10">
+                                </div>
+                                <div id="matrixA-grid" class="matrix-grid"></div>
                             </div>
                             <div class="matrix-group">
-                                <h4>Матрица B</h4>
-                                <textarea id="matrixB" placeholder="Введите матрицу B (например: [[5,6],[7,8]])" rows="4">[[5,6],[7,8]]</textarea>
+                                <h4>Матрица B (или вектор b)</h4>
+                                <div class="matrix-dimension-controls">
+                                    <label>Ряды:</label>
+                                    <input type="number" id="matrixBRows" value="2" min="1" max="10">
+                                    <label>Колонки:</label>
+                                    <input type="number" id="matrixBCols" value="1" min="1" max="10">
+                                </div>
+                                <div id="matrixB-grid" class="matrix-grid"></div>
                             </div>
                         </div>
                         <div class="matrix-operations">
@@ -144,11 +198,10 @@
                             <button class="btn operation" onclick="addMatrices()">A + B</button>
                             <button class="btn operation" onclick="subtractMatrices()">A - B</button>
                             <button class="btn operation" onclick="determinantA()">det(A)</button>
-                            <button class="btn operation" onclick="determinantB()">det(B)</button>
                             <button class="btn operation" onclick="inverseA()">A⁻¹</button>
-                            <button class="btn operation" onclick="inverseB()">B⁻¹</button>
                             <button class="btn operation" onclick="transposeA()">Aᵀ</button>
-                            <button class="btn operation" onclick="transposeB()">Bᵀ</button>
+                            <button class="btn operation" onclick="eigenA()">Eig(A)</button>
+                            <button class="btn operation" onclick="solveLinearSystem()">Solve Ax=b</button>
                         </div>
                         <div class="matrix-result">
                             <h4>Результат:</h4>
@@ -236,6 +289,120 @@
                     </div>
                 </div>
             </section>
+
+            <!-- Конвертер -->
+            <section id="converter" class="tab-content">
+                <div class="converter-container">
+                    <h3>Конвертер величин</h3>
+                    <div class="converter-controls">
+                        <div class="input-group">
+                            <label for="unitCategory">Категория:</label>
+                            <select id="unitCategory"></select>
+                        </div>
+                        <div class="conversion-ui">
+                            <div class="conversion-group">
+                                <input type="number" id="fromValue" value="1">
+                                <select id="fromUnit"></select>
+                            </div>
+                            <div class="equals-sign">=</div>
+                            <div class="conversion-group">
+                                <div id="toValue" class="result-display"></div>
+                                <select id="toUnit"></select>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Теория чисел -->
+            <section id="number-theory" class="tab-content">
+                <div class="number-theory-container">
+                    <h3>Теория чисел</h3>
+                    <div class="number-theory-grid">
+                        <!-- GCD and LCM -->
+                        <div class="number-theory-card">
+                            <h4>НОД и НОК</h4>
+                            <div class="input-group">
+                                <input type="number" id="gcdLcmA" placeholder="Число A" value="48">
+                                <input type="number" id="gcdLcmB" placeholder="Число B" value="18">
+                            </div>
+                            <div class="button-group">
+                                <button class="btn primary" onclick="calculateGcd()">НОД (GCD)</button>
+                                <button class="btn primary" onclick="calculateLcm()">НОК (LCM)</button>
+                            </div>
+                            <div id="gcdLcmResult" class="result-display"></div>
+                        </div>
+
+                        <!-- Prime Factorization -->
+                        <div class="number-theory-card">
+                            <h4>Разложение на простые множители</h4>
+                            <div class="input-group">
+                                <input type="number" id="primeFactorInput" placeholder="Введите число" value="144">
+                            </div>
+                            <div class="button-group">
+                                <button class="btn primary" onclick="calculatePrimeFactorization()">Разложить</button>
+                            </div>
+                            <div id="primeFactorResult" class="result-display"></div>
+                        </div>
+
+                        <!-- Modulo -->
+                        <div class="number-theory-card">
+                            <h4>Операция по модулю</h4>
+                            <div class="input-group">
+                                <input type="number" id="modInputA" placeholder="Число" value="10">
+                                <input type="number" id="modInputB" placeholder="Модуль" value="3">
+                            </div>
+                            <div class="button-group">
+                                <button class="btn primary" onclick="calculateModulo()">A mod B</button>
+                            </div>
+                            <div id="modResult" class="result-display"></div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Статистика -->
+            <section id="statistics" class="tab-content">
+                <div class="statistics-container">
+                    <h3>Статистический анализ</h3>
+                    <div class="statistics-grid">
+                        <!-- Descriptive Statistics -->
+                        <div class="statistics-card">
+                            <h4>Описательная статистика</h4>
+                            <div class="input-group">
+                                <label for="dataSetInput">Набор данных (через запятую):</label>
+                                <textarea id="dataSetInput" rows="4" placeholder="1, 2, 3, 4, 5, ...">1, 2, 2, 3, 4, 5, 5, 5, 6</textarea>
+                            </div>
+                            <div class="button-group-stats">
+                                <button class="btn primary" onclick="calculateMean()">Среднее</button>
+                                <button class="btn primary" onclick="calculateMedian()">Медиана</button>
+                                <button class="btn primary" onclick="calculateMode()">Мода</button>
+                                <button class="btn primary" onclick="calculateStdDev()">Ст. отклонение</button>
+                                <button class="btn primary" onclick="calculateVariance()">Дисперсия</button>
+                            </div>
+                            <div id="descStatsResult" class="result-display"></div>
+                        </div>
+
+                        <!-- Linear Regression -->
+                        <div class="statistics-card">
+                            <h4>Линейная регрессия (y = mx + c)</h4>
+                            <div class="input-group">
+                                <label for="regressionX">Данные X (через запятую):</label>
+                                <textarea id="regressionX" rows="3" placeholder="1, 2, 3, ...">1, 2, 3, 4, 5</textarea>
+                            </div>
+                            <div class="input-group">
+                                <label for="regressionY">Данные Y (через запятую):</label>
+                                <textarea id="regressionY" rows="3" placeholder="2, 4, 5, 4, 5">2, 4, 5, 4, 5</textarea>
+                            </div>
+                            <div class="button-group">
+                                <button class="btn primary" onclick="calculateLinearRegression()">Рассчитать</button>
+                            </div>
+                            <div id="regressionResult" class="result-display"></div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
         </main>
     </div>
 
