@@ -3,18 +3,18 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Супер Продвинутый Математический Калькулятор</title>
+    <title>Калькулятор</title>
     <link rel="stylesheet" href="styles.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjs/11.7.0/math.min.js"></script>
 </head>
 <body>
     <div class="container">
         <header>
-            <h1>🧮 Супер Продвинутый Математический Калькулятор</h1>
+            <h1>Калькулятор</h1>
             <nav class="tabs">
                 <button class="tab-btn active" data-tab="calculator">Калькулятор</button>
                 <button class="tab-btn" data-tab="graphs">Графики</button>
-                <button class="tab-btn" data-tab="matrices">Матрицы</button>
+                <!-- <button class="tab-btn" data-tab="matrices">Матрицы</button>-->
                 <button class="tab-btn" data-tab="complex">Комплексные числа</button>
                 <button class="tab-btn" data-tab="calculus">Исчисления</button>
             </nav>
@@ -138,6 +138,7 @@
                                 <h4>Матрица B</h4>
                                 <textarea id="matrixB" placeholder="Введите матрицу B (например: [[5,6],[7,8]])" rows="4">[[5,6],[7,8]]</textarea>
                             </div>
+                        </div>
                         <div class="matrix-operations">
                             <button class="btn operation" onclick="multiplyMatrices()">A × B</button>
                             <button class="btn operation" onclick="addMatrices()">A + B</button>

@@ -114,15 +114,22 @@ function calculate() {
         // Вычисляем результат
         const calculationResult = math.evaluate(expression);
         
-        // Форматируем результат
+        // Форматируем результат с высокой точностью (20 знаков) и без экспоненциального формата
         let formattedResult;
         if (typeof calculationResult === 'number') {
-            formattedResult = math.format(calculationResult, { precision: 14 });
+            // Для больших чисел используем toFixed вместо экспоненциального формата
+            if (Math.abs(calculationResult) >= 1e6 || (Math.abs(calculationResult) < 1e-6 && calculationResult !== 0)) {
+                formattedResult = calculationResult.toLocaleString('fullwide', { useGrouping: false, maximumFractionDigits: 20 });
+            } else {
+                formattedResult = math.format(calculationResult, { precision: 20, notation: 'fixed' });
+            }
         } else if (calculationResult && typeof calculationResult === 'object' && calculationResult.re !== undefined) {
             // Комплексное число
-            formattedResult = `${math.format(calculationResult.re, { precision: 14 })} + ${math.format(calculationResult.im, { precision: 14 })}i`;
+            const realPart = math.format(calculationResult.re, { precision: 20, notation: 'fixed' });
+            const imagPart = math.format(calculationResult.im, { precision: 20, notation: 'fixed' });
+            formattedResult = `${realPart} + ${imagPart}i`;
         } else {
-            formattedResult = math.format(calculationResult, { precision: 14 });
+            formattedResult = math.format(calculationResult, { precision: 20, notation: 'fixed' });
         }
         
         result.textContent = formattedResult;
@@ -559,11 +566,20 @@ function getMatrixFromInput(inputId) {
     if (!input) return null;
     
     try {
-        // Заменяем квадратные скобки на круглые для совместимости с math.js
-        const cleanInput = input.replace(/\[/g, '(').replace(/\]/g, ')');
-        return math.evaluate(cleanInput);
+        // Простая проверка и преобразование формата матрицы
+        let cleanInput = input;
+        
+        // Преобразуем формат [[1,2],[3,4]] в [(1,2),(3,4)] для math.js
+        if (input.startsWith('[') && input.endsWith(']')) {
+            cleanInput = input.replace(/\[/g, '(').replace(/\]/g, ')');
+        }
+        
+        // Пытаемся вычислить выражение
+        const result = math.evaluate(cleanInput);
+        return result;
     } catch (error) {
-        throw new Error('Неверный формат матрицы');
+        console.error('Ошибка парсинга матрицы:', error);
+        throw new Error('Неверный формат матрицы. Используйте формат: [[1,2],[3,4]]');
     }
 }
 
@@ -573,14 +589,14 @@ function displayMatrixResult(result, title = 'Результат:') {
         if (Array.isArray(result)) {
             if (Array.isArray(result[0])) {
                 // Матрица
-                resultDiv.innerHTML = `<strong>${title}</strong><br><pre>${math.format(result, { precision: 4 })}</pre>`;
+                resultDiv.innerHTML = `<strong>${title}</strong><br><pre>${math.format(result, { precision: 20 })}</pre>`;
             } else {
                 // Вектор
-                resultDiv.innerHTML = `<strong>${title}</strong><br><pre>[${result.map(x => math.format(x, { precision: 4 })).join(', ')}]</pre>`;
+                resultDiv.innerHTML = `<strong>${title}</strong><br><pre>[${result.map(x => math.format(x, { precision: 20 })).join(', ')}]</pre>`;
             }
         } else {
             // Скаляр
-            resultDiv.innerHTML = `<strong>${title}</strong><br><pre>${math.format(result, { precision: 4 })}</pre>`;
+            resultDiv.innerHTML = `<strong>${title}</strong><br><pre>${math.format(result, { precision: 20 })}</pre>`;
         }
     } catch (error) {
         resultDiv.innerHTML = `<strong>${title}</strong><br><pre>${result}</pre>`;
@@ -737,11 +753,11 @@ function displayComplexResult(result, title = 'Результат:') {
     try {
         if (typeof result === 'object' && result.re !== undefined) {
             // Комплексное число
-            const formatted = math.format(result, { precision: 4 });
+            const formatted = math.format(result, { precision: 20 });
             resultDiv.innerHTML = `<strong>${title}</strong><br><pre>${formatted}</pre>`;
         } else {
             // Вещественное число
-            resultDiv.innerHTML = `<strong>${title}</strong><br><pre>${math.format(result, { precision: 4 })}</pre>`;
+            resultDiv.innerHTML = `<strong>${title}</strong><br><pre>${math.format(result, { precision: 20 })}</pre>`;
         }
     } catch (error) {
         resultDiv.innerHTML = `<strong>${title}</strong><br><pre>${result}</pre>`;
