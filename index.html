@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Супер Продвинутый Математический Калькулятор</title>
+    <link rel="stylesheet" href="styles.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjs/11.7.0/math.min.js"></script>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🧮 Супер Продвинутый Математический Калькулятор</h1>
+            <nav class="tabs">
+                <button class="tab-btn active" data-tab="calculator">Калькулятор</button>
+                <button class="tab-btn" data-tab="graphs">Графики</button>
+                <button class="tab-btn" data-tab="matrices">Матрицы</button>
+                <button class="tab-btn" data-tab="complex">Комплексные числа</button>
+                <button class="tab-btn" data-tab="calculus">Исчисления</button>
+            </nav>
+        </header>
+
+        <main>
+            <!-- Основной калькулятор -->
+            <section id="calculator" class="tab-content active">
+                <div class="calculator-grid">
+                    <div class="display-section">
+                        <div class="history"></div>
+                        <input type="text" id="display" class="display" placeholder="Введите выражение..." readonly>
+                        <div class="result" id="result"></div>
+                    </div>
+                    
+                    <div class="buttons-section">
+                        <div class="button-grid">
+                            <!-- Стандартные кнопки -->
+                            <button class="btn clear" onclick="clearDisplay()">C</button>
+                            <button class="btn clear" onclick="clearEntry()">CE</button>
+                            <button class="btn operator" onclick="appendToDisplay('←')">⌫</button>
+                            <button class="btn operator" onclick="appendToDisplay('/')">÷</button>
+                            
+                            <button class="btn number" onclick="appendToDisplay('7')">7</button>
+                            <button class="btn number" onclick="appendToDisplay('8')">8</button>
+                            <button class="btn number" onclick="appendToDisplay('9')">9</button>
+                            <button class="btn operator" onclick="appendToDisplay('*')">×</button>
+                            
+                            <button class="btn number" onclick="appendToDisplay('4')">4</button>
+                            <button class="btn number" onclick="appendToDisplay('5')">5</button>
+                            <button class="btn number" onclick="appendToDisplay('6')">6</button>
+                            <button class="btn operator" onclick="appendToDisplay('-')">−</button>
+                            
+                            <button class="btn number" onclick="appendToDisplay('1')">1</button>
+                            <button class="btn number" onclick="appendToDisplay('2')">2</button>
+                            <button class="btn number" onclick="appendToDisplay('3')">3</button>
+                            <button class="btn operator" onclick="appendToDisplay('+')">+</button>
+                            
+                            <button class="btn number" onclick="appendToDisplay('0')">0</button>
+                            <button class="btn number" onclick="appendToDisplay('.')">.</button>
+                            <button class="btn equals" onclick="calculate()">=</button>
+                            <button class="btn operator" onclick="appendToDisplay('^')">^</button>
+                            
+                            <!-- Расширенные функции -->
+                            <button class="btn function" onclick="appendToDisplay('sin(')">sin</button>
+                            <button class="btn function" onclick="appendToDisplay('cos(')">cos</button>
+                            <button class="btn function" onclick="appendToDisplay('tan(')">tan</button>
+                            <button class="btn function" onclick="appendToDisplay('sqrt(')">√</button>
+                            
+                            <button class="btn function" onclick="appendToDisplay('log(')">log</button>
+                            <button class="btn function" onclick="appendToDisplay('ln(')">ln</button>
+                            <button class="btn function" onclick="appendToDisplay('pi')">π</button>
+                            <button class="btn function" onclick="appendToDisplay('e')">e</button>
+                            
+                            <button class="btn function" onclick="appendToDisplay('(')">(</button>
+                            <button class="btn function" onclick="appendToDisplay(')')">)</button>
+                            <button class="btn function" onclick="appendToDisplay('!')">!</button>
+                            <button class="btn function" onclick="appendToDisplay('abs(')">|x|</button>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Графики функций -->
+            <section id="graphs" class="tab-content">
+                <div class="graph-container">
+                    <div class="graph-controls">
+                        <div class="input-group">
+                            <label for="functionInput">Функция f(x) =</label>
+                            <input type="text" id="functionInput" placeholder="например: sin(x)" value="sin(x)">
+                        </div>
+                        <div class="input-group">
+                            <label for="functionInput2">Функция g(x) =</label>
+                            <input type="text" id="functionInput2" placeholder="например: cos(x)" value="cos(x)">
+                        </div>
+                        <div class="range-controls">
+                            <div class="range-group">
+                                <label>X min:</label>
+                                <input type="number" id="xMin" value="-10" step="1">
+                            </div>
+                            <div class="range-group">
+                                <label>X max:</label>
+                                <input type="number" id="xMax" value="10" step="1">
+                            </div>
+                            <div class="range-group">
+                                <label>Y min:</label>
+                                <input type="number" id="yMin" value="-5" step="1">
+                            </div>
+                            <div class="range-group">
+                                <label>Y max:</label>
+                                <input type="number" id="yMax" value="5" step="1">
+                            </div>
+                        </div>
+                        <div class="button-group">
+                            <button class="btn primary" onclick="plotFunctions()">Построить графики</button>
+                            <button class="btn secondary" onclick="clearGraph()">Очистить</button>
+                        </div>
+                    </div>
+                    <div class="canvas-container">
+                        <canvas id="graphCanvas" width="800" height="600"></canvas>
+                        <div class="zoom-controls">
+                            <button class="btn small" onclick="zoomIn()">+</button>
+                            <button class="btn small" onclick="zoomOut()">−</button>
+                            <button class="btn small" onclick="resetZoom()">↺</button>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Матрицы -->
+            <section id="matrices" class="tab-content">
+                <div class="matrix-container">
+                    <div class="matrix-controls">
+                        <h3>Операции с матрицами</h3>
+                        <div class="matrix-inputs">
+                            <div class="matrix-group">
+                                <h4>Матрица A</h4>
+                                <textarea id="matrixA" placeholder="Введите матрицу A (например: [[1,2],[3,4]])" rows="4">[[1,2],[3,4]]</textarea>
+                            </div>
+                            <div class="matrix-group">
+                                <h4>Матрица B</h4>
+                                <textarea id="matrixB" placeholder="Введите матрицу B (например: [[5,6],[7,8]])" rows="4">[[5,6],[7,8]]</textarea>
+                            </div>
+                        <div class="matrix-operations">
+                            <button class="btn operation" onclick="multiplyMatrices()">A × B</button>
+                            <button class="btn operation" onclick="addMatrices()">A + B</button>
+                            <button class="btn operation" onclick="subtractMatrices()">A - B</button>
+                            <button class="btn operation" onclick="determinantA()">det(A)</button>
+                            <button class="btn operation" onclick="determinantB()">det(B)</button>
+                            <button class="btn operation" onclick="inverseA()">A⁻¹</button>
+                            <button class="btn operation" onclick="inverseB()">B⁻¹</button>
+                            <button class="btn operation" onclick="transposeA()">Aᵀ</button>
+                            <button class="btn operation" onclick="transposeB()">Bᵀ</button>
+                        </div>
+                        <div class="matrix-result">
+                            <h4>Результат:</h4>
+                            <div id="matrixResult" class="result-display"></div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Комплексные числа -->
+            <section id="complex" class="tab-content">
+                <div class="complex-container">
+                    <div class="complex-controls">
+                        <h3>Комплексные числа</h3>
+                        <div class="complex-inputs">
+                            <div class="input-group">
+                                <label>Комплексное число z₁ = a + bi</label>
+                                <div class="complex-input">
+                                    <input type="number" id="real1" placeholder="a" value="3" step="any">
+                                    <span>+</span>
+                                    <input type="number" id="imag1" placeholder="b" value="4" step="any">
+                                    <span>i</span>
+                                </div>
+                            <div class="input-group">
+                                <label>Комплексное число z₂ = c + di</label>
+                                <div class="complex-input">
+                                    <input type="number" id="real2" placeholder="c" value="1" step="any">
+                                    <span>+</span>
+                                    <input type="number" id="imag2" placeholder="d" value="2" step="any">
+                                    <span>i</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="complex-operations">
+                            <button class="btn operation" onclick="addComplex()">z₁ + z₂</button>
+                            <button class="btn operation" onclick="subtractComplex()">z₁ - z₂</button>
+                            <button class="btn operation" onclick="multiplyComplex()">z₁ × z₂</button>
+                            <button class="btn operation" onclick="divideComplex()">z₁ ÷ z₂</button>
+                            <button class="btn operation" onclick="modulusComplex1()">|z₁|</button>
+                            <button class="btn operation" onclick="modulusComplex2()">|z₂|</button>
+                            <button class="btn operation" onclick="conjugateComplex1()">z₁̄</button>
+                            <button class="btn operation" onclick="conjugateComplex2()">z₂̄</button>
+                        </div>
+                        <div class="complex-result">
+                            <h4>Результат:</h4>
+                            <div id="complexResult" class="result-display"></div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Исчисления -->
+            <section id="calculus" class="tab-content">
+                <div class="calculus-container">
+                    <div class="calculus-controls">
+                        <h3>Исчисления</h3>
+                        <div class="calculus-inputs">
+                            <div class="input-group">
+                                <label for="functionCalculus">Функция f(x) =</label>
+                                <input type="text" id="functionCalculus" placeholder="например: x^2 + 3*x + 2" value="x^2">
+                            </div>
+                            <div class="input-group">
+                                <label for="pointCalculus">Точка x =</label>
+                                <input type="number" id="pointCalculus" placeholder="Точка для производной" value="2" step="any">
+                            </div>
+                            <div class="input-group">
+                                <label for="integralLower">Интеграл от a =</label>
+                                <input type="number" id="integralLower" placeholder="Нижний предел" value="0" step="any">
+                            </div>
+                            <div class="input-group">
+                                <label for="integralUpper">Интеграл до b =</label>
+                                <input type="number" id="integralUpper" placeholder="Верхний предел" value="1" step="any">
+                            </div>
+                        </div>
+                        <div class="calculus-operations">
+                            <button class="btn operation" onclick="differentiate()">Найти f'(x)</button>
+                            <button class="btn operation" onclick="evaluateDerivative()">f'(x₀)</button>
+                            <button class="btn operation" onclick="integrate()">∫f(x)dx</button>
+                            <button class="btn operation" onclick="definiteIntegral()">∫[a,b]f(x)dx</button>
+                        </div>
+                        <div class="calculus-result">
+                            <h4>Результат:</h4>
+                            <div id="calculusResult" class="result-display"></div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
