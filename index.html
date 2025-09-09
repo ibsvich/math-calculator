@@ -406,21 +406,23 @@
 
             <!-- Уравнения -->
             <section id="equations" class="tab-content">
-                <div class="statistics-container">
+                <div class="equations-container">
                     <h3>Решатель многочленов — действительные и мнимые корни</h3>
-                    <div class="input-group">
-                        <label for="dataSetInput">Ввод: коэффициенты (через запятую) от старшей степени к младшей. Пример: <code>1,0,-2,1</code> = x³ - 2x + 1</label>
-                        <textarea id="coeffs" placeholder="x^3 -2x +1">1, 0, -2, 1</textarea>
+                    <div class="equations-card">
+                        <div class="input-group">
+                            <label for="coeffs">Ввод: коэффициенты (через запятую) от старшей степени к младшей. Пример: <code>1,0,-2,1</code> = x³ - 2x + 1</label>
+                            <textarea id="coeffs" placeholder="x^3 -2x +1">1, 0, -2, 1</textarea>
+                        </div>
+    
+                        <div class="button-group">
+                            <button class="btn primary" id="solve">Найти корни</button>
+                            <label class="checkbox-label"><input type="checkbox" id="showPlot" checked> Показать график корней</label>
+                        </div>
+    
+                        <div id="out" class="result-display"></div>
+                            
+                        <canvas id="cv" width="400" height="400" style="margin-top: 20px; border-radius: 10px;"></canvas>
                     </div>
-
-                    <div class="row">
-                        <button class="btn primary" id="solve">Найти корни</button>
-                        <label><input type="checkbox" id="showPlot" checked> Показать график корней</label>
-                    </div>
-
-                    <div id="out" class="result-display"></div>
-                        
-                    <canvas id="cv" width="400" height="400"></canvas>
                 </div>
             </section>
 
