@@ -1369,3 +1369,248 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 });
+
+
+//Решение уравнений:
+// --- Простая реализация комплексных чисел ---
+class C {
+  constructor(re=0, im=0){ this.re = re; this.im = im; }
+  add(b){ return new C(this.re + b.re, this.im + b.im); }
+  sub(b){ return new C(this.re - b.re, this.im - b.im); }
+  mul(b){ return new C(this.re*b.re - this.im*b.im, this.re*b.im + this.im*b.re); }
+  div(b){
+    const den = b.re*b.re + b.im*b.im;
+    return new C((this.re*b.re + this.im*b.im)/den, (this.im*b.re - this.re*b.im)/den);
+  }
+  abs(){ return Math.hypot(this.re, this.im); }
+  neg(){ return new C(-this.re, -this.im); }
+  scale(s){ return new C(this.re * s, this.im * s); }
+  equals(b, eps=1e-12){ return Math.abs(this.re-b.re) < eps && Math.abs(this.im-b.im) < eps; }
+  toString(prec=6){
+    const r = Number(this.re.toFixed(prec));
+    const i = Number(this.im.toFixed(prec));
+    if (Math.abs(i) < 1e-12) return `${r}`;
+    if (Math.abs(r) < 1e-12) return `${i}i`;
+    const sign = i >= 0 ? "+" : "-";
+    return `${r} ${sign} ${Math.abs(i)}i`;
+  }
+}
+
+// Убираем ведущие нули коэффициентов
+function trimLeadingZeros(arr){
+  let i=0;
+  while(i+1 < arr.length && Math.abs(arr[i]) < 1e-14) i++;
+  return arr.slice(i);
+}
+
+// Оценка многочлена p в z; p — массив комплексных коэффициентов: [a0, a1, ..., an] (старшая степень первая)
+function polyEvalComplex(p, z){
+  // Horner
+  let res = new C(0,0);
+  for (let coeff of p){
+    res = res.mul(z).add(coeff);
+  }
+  return res;
+}
+
+// Вспомог: преобразовать массив действительных коэффициентов в комплексные объекты
+function toComplexArray(arr){
+  return arr.map(v => new C(v, 0));
+}
+
+// Решение для n=1 и n=2 явно
+function solveLinear(a,b){ // ax + b = 0 ; a != 0
+  return [ new C(-b/a, 0) ];
+}
+function solveQuadratic(a,b,c){
+  // ax^2 + bx + c = 0
+  if (Math.abs(a) < 1e-16){
+    return solveLinear(b,c);
+  }
+  const D = b*b - 4*a*c;
+  if (D >= 0){
+    const sqrtD = Math.sqrt(D);
+    return [ new C((-b + sqrtD)/(2*a), 0), new C((-b - sqrtD)/(2*a), 0) ];
+  } else {
+    const sqrtD = Math.sqrt(-D);
+    return [ new C(-b/(2*a), sqrtD/(2*a)), new C(-b/(2*a), -sqrtD/(2*a)) ];
+  }
+}
+
+// Durand-Kerner (Weierstrass) для комплексных корней
+function durandKernerRealCoeffs(realCoeffs, opts = {}){
+  // realCoeffs: [a0,a1,...,an] — действительные, старшая степень первая
+  const tol = opts.tol ?? 1e-12;
+  const maxIter = opts.maxIter ?? 2000;
+  let coeffs = trimLeadingZeros(realCoeffs.slice());
+  const deg = coeffs.length - 1;
+  if (deg <= 0) return [];
+  if (deg === 1) return solveLinear(coeffs[0], coeffs[1]);
+  if (deg === 2) return solveQuadratic(coeffs[0], coeffs[1], coeffs[2]);
+
+  // Перевод коэффициентов в комплексные
+  const p = toComplexArray(coeffs);
+
+  // Оценка радиуса для начальных приближений: 1 + max(|a_i / a0|)
+  const a0 = Math.abs(coeffs[0]);
+  let R = 1;
+  if (a0 > 0){
+    let m = 0;
+    for (let i=1;i<coeffs.length;i++) m = Math.max(m, Math.abs(coeffs[i]) / a0);
+    R = 1 + m;
+  }
+
+  // начальные приближения: равномерно распределённые точки на круге радиуса R
+  let roots = [];
+  for (let k=0;k<deg;k++){
+    const theta = 2*Math.PI*k/deg;
+    roots.push(new C(R*Math.cos(theta), R*Math.sin(theta)));
+  }
+
+  // Итерации
+  for (let iter=0; iter<maxIter; iter++){
+    let maxChange = 0;
+    const newRoots = [];
+    for (let i=0;i<deg;i++){
+      const xi = roots[i];
+      const fx = polyEvalComplex(p, xi);
+      // произведение (xi - xj) j != i
+      let denom = new C(1,0);
+      for (let j=0;j<deg;j++){
+        if (j===i) continue;
+        const diff = xi.sub(roots[j]);
+        // если дифф очень мал — поправка (помогает от деления на ноль)
+        if (diff.abs() < 1e-18){
+          denom = denom.mul(new C(1e-18,0));
+        } else {
+          denom = denom.mul(diff);
+        }
+      }
+      const delta = fx.div(denom);
+      const xiNew = xi.sub(delta);
+      newRoots.push(xiNew);
+      maxChange = Math.max(maxChange, delta.abs());
+    }
+    roots = newRoots;
+    if (maxChange < tol) break;
+  }
+  return roots;
+}
+
+// UI
+const out = document.getElementById('out');
+const solveBtn = document.getElementById('solve');
+const coeffsInput = document.getElementById('coeffs');
+const cv = document.getElementById('cv');
+const showPlot = document.getElementById('showPlot');
+
+function print(msg){
+  out.textContent = msg;
+}
+
+function parseCoeffs(text){
+  // разделяем по запятым/пробелам; допускаем точки как десятичные разделители
+  const parts = text.split(/[\s,;]+/).filter(s => s.trim().length>0);
+  const arr = parts.map(s => {
+    const v = Number(s.replace(',', '.'));
+    if (Number.isFinite(v)) return v;
+    else throw new Error('Неправильный формат коэффициента: ' + s);
+  });
+  return arr;
+}
+
+function drawRoots(roots){
+  const ctx = cv.getContext('2d');
+  ctx.clearRect(0,0,cv.width, cv.height);
+  // Найти диапазон
+  const pad = 0.2;
+  let maxC = 1e-6;
+  for (const r of roots) maxC = Math.max(maxC, Math.abs(r.re), Math.abs(r.im));
+  const limit = maxC * (1 + pad);
+  const W = cv.width, H = cv.height;
+  // оси
+  ctx.strokeStyle = '#bbb';
+  ctx.lineWidth = 1;
+  // x axis
+  const x0 = W/2;
+  const y0 = H/2;
+  ctx.beginPath();
+  ctx.moveTo(0, y0);
+  ctx.lineTo(W, y0);
+  ctx.moveTo(x0, 0);
+  ctx.lineTo(x0, H);
+  ctx.stroke();
+
+  // сетка делений
+  ctx.fillStyle = '#000';
+  ctx.font = '12px sans-serif';
+
+  // plot roots
+  for (let r of roots){
+    const sx = x0 + (r.re / limit) * (W/2);
+    const sy = y0 - (r.im / limit) * (H/2);
+    // точка
+    ctx.beginPath();
+    ctx.arc(sx, sy, 6, 0, 2*Math.PI);
+    ctx.fillStyle = '#2b7';
+    ctx.fill();
+    ctx.strokeStyle = '#063';
+    ctx.stroke();
+    // подпись
+    ctx.fillStyle = '#000';
+    ctx.fillText(r.toString(6), sx + 8, sy - 8);
+  }
+
+  // подписи масштаба
+  ctx.fillStyle = '#333';
+  ctx.fillText(( -limit ).toFixed(3), 4, y0 - 4);
+  ctx.fillText(( +limit ).toFixed(3), W - 48, y0 - 4);
+  ctx.fillText(( +limit ).toFixed(3), x0 + 4, 12);
+  ctx.fillText(( -limit ).toFixed(3), x0 + 4, H - 6);
+}
+
+solveBtn.addEventListener('click', ()=>{
+  try {
+    const arr = parseCoeffs(coeffsInput.value.trim());
+    if (arr.length === 0) { print('Введите коэффициенты.'); return; }
+    // удаляем ведущие нули (если пользователь ввёл)
+    const trimmed = trimLeadingZeros(arr);
+    if (trimmed.length === 0){ print('Многочлен нулевой степени.'); return; }
+    const deg = trimmed.length - 1;
+    print('Степень: ' + deg + '\nВычисляю корни...');
+
+    // Для степени 1 и 2 используем явные формулы, иначе Durand-Kerner
+    let roots;
+    if (deg === 0){
+      print('Константа, корней нет.');
+      return;
+    } else if (deg === 1){
+      roots = solveLinear(trimmed[0], trimmed[1]);
+    } else if (deg === 2){
+      roots = solveQuadratic(trimmed[0], trimmed[1], trimmed[2]);
+    } else {
+      roots = durandKernerRealCoeffs(trimmed, {tol:1e-12, maxIter:2000});
+    }
+    // Вывод
+    let s = `Найдено корней: ${roots.length}\n\n`;
+    roots.forEach((r,i)=>{
+      s += `root ${i+1}: ${r.toString(10)}    |  abs=${r.abs().toFixed(10)}\n`;
+    });
+    print(s);
+
+    if (showPlot.checked){
+      drawRoots(roots);
+    } else {
+      const ctx = cv.getContext('2d');
+      ctx.clearRect(0,0,cv.width,cv.height);
+    }
+
+  } catch (e){
+    print('Ошибка: ' + e.message);
+  }
+});
+
+// Пример по кнопке двойного клика — вставка примера
+coeffsInput.addEventListener('dblclick', ()=>{
+  coeffsInput.value = '1,0,-2,1'; // x^3 - 2x + 1
+});
